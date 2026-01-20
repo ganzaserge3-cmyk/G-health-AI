@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Guard AI - Your Medical Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" id="newChatBtn">
+                    <i class="fas fa-plus"></i>
+                    <span>New Chat</span>
+                </button>
+            </div>
+            
+            <div class="chat-history-container">
+                <h3>Today</h3>
+                <div class="chat-history" id="chatHistory">
+                    <!-- Chat history will be dynamically loaded here -->
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">U</div>
+                    <span class="username">User</span>
+                </div>
+                <button class="settings-btn" id="settingsBtn">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="chat-header">
+                <h1>Health Guard AI</h1>
+                <p class="subtitle">Your personal health assistant powered by Gemini AI</p>
+            </header>
+
+            <!-- Chat Messages Container -->
+            <div class="chat-container" id="chatContainer">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <h2>Welcome to Health Guard AI</h2>
+                    <p>Ask me anything about your health concerns, symptoms, or general wellness.</p>
+                    <div class="quick-questions">
+                        <button class="quick-btn" data-question="What are the symptoms of flu?">Flu Symptoms</button>
+                        <button class="quick-btn" data-question="How to lower blood pressure naturally?">Lower BP</button>
+                        <button class="quick-btn" data-question="What foods are good for digestion?">Digestion</button>
+                        <button class="quick-btn" data-question="When should I see a doctor for a headache?">Headache</button>
+                    </div>
+                </div>
+
+                <!-- Messages will be appended here -->
+            </div>
+
+            <!-- Scroll Down Button -->
+            <button class="scroll-down-btn" id="scrollDownBtn" style="display: none;">
+                <i class="fas fa-arrow-down"></i>
+            </button>
+
+            <!-- Input Area -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <div class="upload-btn-container">
+                        <button class="upload-btn" id="uploadBtn" title="Upload Image">
+                            <i class="fas fa-image"></i>
+                        </button>
+                        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                    </div>
+                    
+                    <div class="message-input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Describe your health concern or upload an image..." 
+                            rows="1"
+                        ></textarea>
+                        <button class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="disclaimer">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Note: This AI provides general health information only. Always consult a healthcare professional for medical advice.</span>
+                </div>
+            </div>
+
+            <!-- Preview Image Modal -->
+            <div class="modal" id="imagePreviewModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Image Preview</h3>
+                        <button class="close-modal" id="closeModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <img id="previewImage" src="" alt="Preview">
+                        <div class="image-actions">
+                            <button class="action-btn remove-btn" id="removeImage">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                            <button class="action-btn use-btn" id="useImage">
+                                <i class="fas fa-check"></i> Use in Chat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="api-service.js"></script>
+    <script src="chat-history.js"></script>
+    <script src="image-handler.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
