@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    <defs>
+        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10a37f" />
+            <stop offset="100%" stop-color="#25c2a0" />
+        </linearGradient>
+    </defs>
+    
+    <!-- Shield Background -->
+    <path d="M100,20 L180,60 L180,140 L100,180 L20,140 L20,60 Z" 
+          fill="url(#gradient)" stroke="#ffffff" stroke-width="4"/>
+    
+    <!-- Heart with AI Symbol -->
+    <path d="M100,80 C120,60 140,70 140,90 C140,110 100,130 100,130 C100,130 60,110 60,90 C60,70 80,60 100,80 Z" 
+          fill="#ffffff"/>
+    
+    <!-- AI Symbol -->
+    <text x="100" y="120" text-anchor="middle" font-family="Arial, sans-serif" 
+          font-weight="bold" font-size="24" fill="#10a37f">AI</text>
+    
+    <!-- Pulse Waves -->
+    <circle cx="100" cy="160" r="3" fill="#ffffff">
+        <animate attributeName="r" values="3;8;3" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="100" cy="160" r="5" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.5">
+        <animate attributeName="r" values="5;12;5" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite"/>
+    </circle>
+</svg>

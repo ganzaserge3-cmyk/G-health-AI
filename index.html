@@ -1,52 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Guard AI - Your Medical Assistant</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-</head>
-<body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <button class="new-chat-btn" id="newChatBtn">
-                    <i class="fas fa-plus"></i>
-                    <span>New Chat</span>
-                </button>
-            </div>
-            
-            <div class="chat-history-container">
-                <h3>Today</h3>
-                <div class="chat-history" id="chatHistory">
-                    <!-- Chat history will be dynamically loaded here -->
-                </div>
-            </div>
-            
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div class="avatar">U</div>
-                    <span class="username">User</span>
-                </div>
-                <button class="settings-btn" id="settingsBtn">
-                    <i class="fas fa-cog"></i>
-                </button>
-            </div>
-        </aside>
+// script.js - Complete Working Health Guard AI Script
 
-        <!-- Main Chat Area -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="chat-header">
-                <h1>Health Guard AI</h1>
-                <p class="subtitle">Your personal health assistant powered by Gemini AI</p>
-            </header>
+// Main Application Script
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Health Guard AI initialized successfully!');
+    
+    // Initialize components
+    const chatManager = new ChatManager();
+    window.chatManager = chatManager; // Make globally available
+    
+    // Set up all event listeners
+    setupEventListeners(chatManager);
+    
+    // Load chat history
+    chatManager.loadChatHistory();
+    
+    // Test: Make sure New Chat button is clickable
+    const newChatBtn = document.getElementById('newChatBtn');
+    if (newChatBtn) {
+        newChatBtn.style.cursor = 'pointer';
+        newChatBtn.disabled = false;
+        console.log('✅ New Chat button ready');
+    }
+});
 
-            <!-- Chat Messages Container -->
-            <div class="chat-container" id="chatContainer">
+// Chat Manager Class
+class ChatManager {
+    constructor() {
+        this.currentChatId = null;
+        this.messages = [];
+        this.apiService = new ApiService();
+        
+        // Load current chat if exists
+        const savedChatId = localStorage.getItem('currentChatId');
+        if (savedChatId) {
+            this.currentChatId = savedChatId;
+        } else {
+            this.startNewChat();
+        }
+    }
+    
+    startNewChat() {
+        console.log('🎯 Starting new chat...');
+        
+        this.currentChatId = 'chat_' + Date.now();
+        this.messages = [];
+        localStorage.setItem('currentChatId', this.currentChatId);
+        
+        // Clear chat container
+        const chatContainer = document.getElementById('chatContainer');
+        chatContainer.innerHTML = '';
+        
+        // Show welcome screen
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = 'block';
+        } else {
+            // Recreate welcome screen if missing
+            chatContainer.innerHTML = `
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-icon">
                         <i class="fas fa-heartbeat"></i>
@@ -60,69 +70,438 @@
                         <button class="quick-btn" data-question="When should I see a doctor for a headache?">Headache</button>
                     </div>
                 </div>
+            `;
+            
+            // Reattach quick question listeners
+            setTimeout(() => {
+                document.querySelectorAll('.quick-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const question = e.target.getAttribute('data-question');
+                        document.getElementById('messageInput').value = question;
+                        this.sendUserMessage(question);
+                    });
+                });
+            }, 100);
+        }
+        
+        // Update chat history
+        this.updateChatHistory();
+        
+        // Scroll to top
+        ChatUI.scrollToBottom();
+        
+        console.log('✅ New chat created:', this.currentChatId);
+        return this.currentChatId;
+    }
+    
+    async sendUserMessage(message, imageData = null) {
+        if (!message.trim() && !imageData) return;
+        
+        // Hide welcome screen
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = 'none';
+        }
+        
+        // Add user message to UI
+        ChatUI.addMessage('user', message, imageData);
+        
+        // Add to messages array
+        this.messages.push({
+            role: 'user',
+            content: message,
+            image: imageData,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Show typing indicator
+        ChatUI.showTypingIndicator();
+        
+        try {
+            // Send to Gemini API
+            const response = await this.apiService.sendToGemini(message, imageData);
+            
+            // Remove typing indicator
+            ChatUI.hideTypingIndicator();
+            
+            // Add AI response to UI
+            ChatUI.addMessage('ai', response);
+            
+            // Add to messages array
+            this.messages.push({
+                role: 'assistant',
+                content: response,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Update chat history
+            this.updateChatHistory();
+            
+            // Scroll to bottom
+            ChatUI.scrollToBottom();
+            
+        } catch (error) {
+            ChatUI.hideTypingIndicator();
+            ChatUI.addMessage('ai', 'Sorry, I encountered an error. Please try again. Error: ' + error.message);
+            console.error('Error:', error);
+        }
+    }
+    
+    updateChatHistory() {
+        if (this.messages.length > 0) {
+            const firstMessage = this.messages.find(m => m.role === 'user');
+            const lastMessage = this.messages[this.messages.length - 1];
+            
+            const chatTitle = firstMessage ? 
+                (firstMessage.content.substring(0, 30) + (firstMessage.content.length > 30 ? '...' : '')) : 
+                'New Chat';
+            
+            const lastMessagePreview = lastMessage.content.substring(0, 50) + 
+                (lastMessage.content.length > 50 ? '...' : '');
+            
+            saveToChatHistory({
+                id: this.currentChatId,
+                title: chatTitle,
+                lastMessage: lastMessagePreview,
+                timestamp: new Date().toISOString(),
+                messageCount: this.messages.length
+            });
+            
+            loadChatHistory();
+        }
+    }
+    
+    loadChatHistory() {
+        loadChatHistory();
+    }
+    
+    loadChat(chatId) {
+        console.log('Loading chat:', chatId);
+        // In a real app, you would load the full conversation from storage
+        // For now, just create a new chat
+        this.startNewChat();
+        ChatUI.addMessage('ai', `Welcome back! Starting a fresh chat. Previous chats would load here with proper backend.`);
+    }
+}
 
-                <!-- Messages will be appended here -->
+// Chat UI Management
+class ChatUI {
+    static addMessage(role, content, imageData = null) {
+        const chatContainer = document.getElementById('chatContainer');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        
+        // Hide welcome screen if it's visible
+        if (welcomeScreen && welcomeScreen.style.display !== 'none') {
+            welcomeScreen.style.display = 'none';
+        }
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}-message`;
+        
+        const avatar = role === 'user' 
+            ? '<div class="message-avatar user-avatar"><i class="fas fa-user"></i></div>'
+            : '<div class="message-avatar ai-avatar"><i class="fas fa-robot"></i></div>';
+        
+        let contentHtml = '';
+        if (imageData) {
+            contentHtml += `<img src="${imageData}" alt="Uploaded image" style="max-width: 300px; border-radius: 8px; margin-bottom: 10px;"><br>`;
+        }
+        contentHtml += this.formatMessage(content);
+        
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                ${avatar}
+                <div class="message-text">
+                    ${contentHtml}
+                </div>
             </div>
-
-            <!-- Scroll Down Button -->
-            <button class="scroll-down-btn" id="scrollDownBtn" style="display: none;">
-                <i class="fas fa-arrow-down"></i>
-            </button>
-
-            <!-- Input Area -->
-            <div class="input-container">
-                <div class="input-wrapper">
-                    <div class="upload-btn-container">
-                        <button class="upload-btn" id="uploadBtn" title="Upload Image">
-                            <i class="fas fa-image"></i>
-                        </button>
-                        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-                    </div>
-                    
-                    <div class="message-input-wrapper">
-                        <textarea 
-                            id="messageInput" 
-                            placeholder="Describe your health concern or upload an image..." 
-                            rows="1"
-                        ></textarea>
-                        <button class="send-btn" id="sendBtn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
+        `;
+        
+        chatContainer.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+    
+    static formatMessage(content) {
+        if (!content) return '';
+        
+        // Convert markdown-like formatting to HTML
+        let formatted = content
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code>$1</code>')
+            .replace(/\n/g, '<br>')
+            .replace(/### (.*?)(?=\n|$)/g, '<h3>$1</h3>')
+            .replace(/## (.*?)(?=\n|$)/g, '<h3>$1</h3>')
+            .replace(/# (.*?)(?=\n|$)/g, '<h2>$1</h2>');
+        
+        // Add list formatting
+        formatted = formatted.replace(/\n\* (.*?)(?=\n|$)/g, '<li>$1</li>');
+        formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+        
+        return formatted;
+    }
+    
+    static showTypingIndicator() {
+        const chatContainer = document.getElementById('chatContainer');
+        
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message ai-message';
+        typingDiv.id = 'typingIndicator';
+        
+        typingDiv.innerHTML = `
+            <div class="message-content">
+                <div class="message-avatar ai-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-text">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
                     </div>
                 </div>
-                
-                <div class="disclaimer">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Note: This AI provides general health information only. Always consult a healthcare professional for medical advice.</span>
-                </div>
             </div>
+        `;
+        
+        chatContainer.appendChild(typingDiv);
+        this.scrollToBottom();
+    }
+    
+    static hideTypingIndicator() {
+        const typingIndicator = document.getElementById('typingIndicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+    
+    static scrollToBottom() {
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer) {
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 100);
+        }
+        
+        // Hide scroll down button when at bottom
+        const scrollDownBtn = document.getElementById('scrollDownBtn');
+        if (scrollDownBtn) {
+            const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
+            scrollDownBtn.style.display = isAtBottom ? 'none' : 'flex';
+        }
+    }
+    
+    static showScrollDownButton() {
+        const chatContainer = document.getElementById('chatContainer');
+        const scrollDownBtn = document.getElementById('scrollDownBtn');
+        
+        if (!chatContainer || !scrollDownBtn) return;
+        
+        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
+        scrollDownBtn.style.display = isAtBottom ? 'none' : 'flex';
+    }
+}
 
-            <!-- Preview Image Modal -->
-            <div class="modal" id="imagePreviewModal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Image Preview</h3>
-                        <button class="close-modal" id="closeModal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <img id="previewImage" src="" alt="Preview">
-                        <div class="image-actions">
-                            <button class="action-btn remove-btn" id="removeImage">
-                                <i class="fas fa-trash"></i> Remove
-                            </button>
-                            <button class="action-btn use-btn" id="useImage">
-                                <i class="fas fa-check"></i> Use in Chat
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
+// Setup Event Listeners
+function setupEventListeners(chatManager) {
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const imageUpload = document.getElementById('imageUpload');
+    const scrollDownBtn = document.getElementById('scrollDownBtn');
+    const chatContainer = document.getElementById('chatContainer');
+    const closeModal = document.getElementById('closeModal');
+    const removeImage = document.getElementById('removeImage');
+    const useImage = document.getElementById('useImage');
+    
+    // Make sure New Chat button is clickable
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('New Chat button clicked!');
+            chatManager.startNewChat();
+        });
+        
+        // Double check it's enabled
+        newChatBtn.disabled = false;
+        newChatBtn.style.cursor = 'pointer';
+    }
+    
+    // Auto-resize textarea
+    if (messageInput) {
+        messageInput.addEventListener('input', () => {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
+        });
+        
+        // Send message on Enter (Shift+Enter for new line)
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+    
+    // Send button click
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendMessage);
+    }
+    
+    // Upload image
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => {
+            if (imageUpload) imageUpload.click();
+        });
+    }
+    
+    if (imageUpload) {
+        imageUpload.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleImageUpload(e.target.files[0]);
+            }
+        });
+    }
+    
+    // Scroll down button
+    if (scrollDownBtn) {
+        scrollDownBtn.addEventListener('click', () => {
+            ChatUI.scrollToBottom();
+        });
+    }
+    
+    // Chat container scroll
+    if (chatContainer) {
+        chatContainer.addEventListener('scroll', () => {
+            ChatUI.showScrollDownButton();
+        });
+    }
+    
+    // Modal controls
+    if (closeModal) {
+        closeModal.addEventListener('click', () => {
+            document.getElementById('imagePreviewModal').style.display = 'none';
+            document.getElementById('imageUpload').value = '';
+        });
+    }
+    
+    if (removeImage) {
+        removeImage.addEventListener('click', () => {
+            document.getElementById('imagePreviewModal').style.display = 'none';
+            document.getElementById('imageUpload').value = '';
+            if (window.ImageHandler) {
+                window.ImageHandler.clearImage();
+            }
+        });
+    }
+    
+    if (useImage) {
+        useImage.addEventListener('click', () => {
+            document.getElementById('imagePreviewModal').style.display = 'none';
+            // Image is already stored in ImageHandler
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.placeholder = "Describe what you see in the image...";
+                messageInput.focus();
+            }
+        });
+    }
+    
+    // Quick question buttons (will be attached dynamically)
+    setTimeout(() => {
+        document.querySelectorAll('.quick-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const question = e.target.getAttribute('data-question');
+                if (messageInput) {
+                    messageInput.value = question;
+                    messageInput.focus();
+                    sendMessage();
+                }
+            });
+        });
+    }, 500);
+    
+    // Send message function
+    async function sendMessage() {
+        const message = messageInput ? messageInput.value.trim() : '';
+        const imageData = window.ImageHandler ? window.ImageHandler.getCurrentImage() : null;
+        
+        if (message || imageData) {
+            // Clear input and reset height
+            if (messageInput) {
+                messageInput.value = '';
+                messageInput.style.height = '56px';
+            }
+            
+            // Clear any uploaded image
+            if (window.ImageHandler) {
+                window.ImageHandler.clearImage();
+            }
+            
+            // Clear file input
+            if (imageUpload) {
+                imageUpload.value = '';
+            }
+            
+            // Reset placeholder
+            if (messageInput) {
+                messageInput.placeholder = "Describe your health concern or upload an image...";
+            }
+            
+            // Send message
+            await chatManager.sendUserMessage(message, imageData);
+        }
+    }
+    
+    // Image upload handler
+    function handleImageUpload(file) {
+        if (!file) return;
+        
+        // Validate file type
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file (JPEG, PNG, GIF, etc.)');
+            return;
+        }
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size should be less than 5MB');
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            const imageData = e.target.result;
+            
+            // Store image globally
+            if (!window.ImageHandler) {
+                window.ImageHandler = {
+                    currentImage: null,
+                    getCurrentImage: () => window.ImageHandler.currentImage,
+                    clearImage: () => { window.ImageHandler.currentImage = null; }
+                };
+            }
+            window.ImageHandler.currentImage = imageData;
+            
+            // Show preview modal
+            const modal = document.getElementById('imagePreviewModal');
+            const previewImage = document.getElementById('previewImage');
+            
+            if (modal && previewImage) {
+                previewImage.src = imageData;
+                modal.style.display = 'flex';
+                modal.classList.add('show');
+            } else {
+                // If modal doesn't exist, just use the image
+                sendMessage();
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    }
+}
 
-    <script src="api-service.js"></script>
-    <script src="chat-history.js"></script>
-    <script src="image-handler.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+// Make ChatUI available globally
+window.ChatUI = ChatUI;
