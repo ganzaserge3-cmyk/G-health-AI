@@ -1,16 +1,26 @@
+// script.js - Complete Working Health Guard AI Script
+
 // Main Application Script
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize components
-    const chatUI = new ChatUI();
-    const chatManager = new ChatManager();
+    console.log('Health Guard AI initialized successfully!');
     
-    // Set up event listeners
-    setupEventListeners();
+    // Initialize components
+    const chatManager = new ChatManager();
+    window.chatManager = chatManager; // Make globally available
+    
+    // Set up all event listeners
+    setupEventListeners(chatManager);
     
     // Load chat history
     chatManager.loadChatHistory();
     
-    console.log('Health Guard AI initialized successfully!');
+    // Test: Make sure New Chat button is clickable
+    const newChatBtn = document.getElementById('newChatBtn');
+    if (newChatBtn) {
+        newChatBtn.style.cursor = 'pointer';
+        newChatBtn.disabled = false;
+        console.log('✅ New Chat button ready');
+    }
 });
 
 // Chat Manager Class
@@ -19,24 +29,74 @@ class ChatManager {
         this.currentChatId = null;
         this.messages = [];
         this.apiService = new ApiService();
+        
+        // Load current chat if exists
+        const savedChatId = localStorage.getItem('currentChatId');
+        if (savedChatId) {
+            this.currentChatId = savedChatId;
+        } else {
+            this.startNewChat();
+        }
     }
     
     startNewChat() {
+        console.log('🎯 Starting new chat...');
+        
         this.currentChatId = 'chat_' + Date.now();
         this.messages = [];
         localStorage.setItem('currentChatId', this.currentChatId);
         
-        // Clear chat container and show welcome
-        document.getElementById('chatContainer').innerHTML = '';
-        document.getElementById('welcomeScreen').style.display = 'block';
+        // Clear chat container
+        const chatContainer = document.getElementById('chatContainer');
+        chatContainer.innerHTML = '';
         
-        // Update active chat in history
+        // Show welcome screen
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = 'block';
+        } else {
+            // Recreate welcome screen if missing
+            chatContainer.innerHTML = `
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <h2>Welcome to Health Guard AI</h2>
+                    <p>Ask me anything about your health concerns, symptoms, or general wellness.</p>
+               
+                  
+            `;
+            
+            // Reattach quick question listeners
+            setTimeout(() => {
+                document.querySelectorAll('.quick-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const question = e.target.getAttribute('data-question');
+                        document.getElementById('messageInput').value = question;
+                        this.sendUserMessage(question);
+                    });
+                });
+            }, 100);
+        }
+        
+        // Update chat history
         this.updateChatHistory();
+        
+        // Scroll to top
+        ChatUI.scrollToBottom();
+        
+        console.log('✅ New chat created:', this.currentChatId);
+        return this.currentChatId;
     }
     
-    async sendMessage(message, imageData = null) {
+    async sendUserMessage(message, imageData = null) {
+        if (!message.trim() && !imageData) return;
+        
         // Hide welcome screen
-        document.getElementById('welcomeScreen').style.display = 'none';
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = 'none';
+        }
         
         // Add user message to UI
         ChatUI.addMessage('user', message, imageData);
@@ -77,20 +137,27 @@ class ChatManager {
             
         } catch (error) {
             ChatUI.hideTypingIndicator();
-            ChatUI.addMessage('ai', 'Sorry, I encountered an error. Please try again.');
+            ChatUI.addMessage('ai', 'Sorry, I encountered an error. Please try again. Error: ' + error.message);
             console.error('Error:', error);
         }
     }
     
     updateChatHistory() {
         if (this.messages.length > 0) {
+            const firstMessage = this.messages.find(m => m.role === 'user');
             const lastMessage = this.messages[this.messages.length - 1];
-            const chatTitle = this.messages[0].content.substring(0, 30) + '...';
+            
+            const chatTitle = firstMessage ? 
+                (firstMessage.content.substring(0, 30) + (firstMessage.content.length > 30 ? '...' : '')) : 
+                'New Chat';
+            
+            const lastMessagePreview = lastMessage.content.substring(0, 50) + 
+                (lastMessage.content.length > 50 ? '...' : '');
             
             saveToChatHistory({
                 id: this.currentChatId,
                 title: chatTitle,
-                lastMessage: lastMessage.content.substring(0, 50) + '...',
+                lastMessage: lastMessagePreview,
                 timestamp: new Date().toISOString(),
                 messageCount: this.messages.length
             });
@@ -100,23 +167,41 @@ class ChatManager {
     }
     
     loadChatHistory() {
-        // Load and display chat history from localStorage
         loadChatHistory();
     }
     
     loadChat(chatId) {
-        // Load a specific chat from history
-        const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-        const chat = history.find(c => c.id === chatId);
+        console.log('Loading chat:', chatId);
+        // In a real app, you would load the full conversation from storage
+        // For now, just create a new chat
+        this.startNewChat();
+        ChatUI.addMessage('ai', `Welcome back! Starting a fresh chat. Previous chats would load here with proper backend.`);
+    }
+    
+    clearAllHistory() {
+        // Clear all data from localStorage
+        localStorage.clear();
         
-        if (chat) {
-            // In a real app, you would load the full conversation
-            this.currentChatId = chatId;
-            localStorage.setItem('currentChatId', chatId);
-            
-            // For demo, just show a message
-            ChatUI.addMessage('ai', `Loaded chat: ${chat.title}`);
+        // Reset current chat
+        this.currentChatId = null;
+        this.messages = [];
+        
+        // Clear chat container
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer) {
+            chatContainer.innerHTML = '';
         }
+        
+        // Show welcome screen
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = 'block';
+        }
+        
+        // Reload chat history (which will be empty)
+        loadChatHistory();
+        
+        console.log('All chat history cleared');
     }
 }
 
@@ -127,7 +212,7 @@ class ChatUI {
         const welcomeScreen = document.getElementById('welcomeScreen');
         
         // Hide welcome screen if it's visible
-        if (welcomeScreen.style.display !== 'none') {
+        if (welcomeScreen && welcomeScreen.style.display !== 'none') {
             welcomeScreen.style.display = 'none';
         }
         
@@ -140,7 +225,7 @@ class ChatUI {
         
         let contentHtml = '';
         if (imageData) {
-            contentHtml += `<img src="${imageData}" alt="Uploaded image" style="max-width: 300px;"><br>`;
+            contentHtml += `<img src="${imageData}" alt="Uploaded image" style="max-width: 300px; border-radius: 8px; margin-bottom: 10px;"><br>`;
         }
         contentHtml += this.formatMessage(content);
         
@@ -158,17 +243,20 @@ class ChatUI {
     }
     
     static formatMessage(content) {
+        if (!content) return '';
+        
         // Convert markdown-like formatting to HTML
         let formatted = content
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code>$1</code>')
             .replace(/\n/g, '<br>')
             .replace(/### (.*?)(?=\n|$)/g, '<h3>$1</h3>')
             .replace(/## (.*?)(?=\n|$)/g, '<h3>$1</h3>')
             .replace(/# (.*?)(?=\n|$)/g, '<h2>$1</h2>');
         
         // Add list formatting
-        formatted = formatted.replace(/\* (.*?)(?=\n|$)/g, '<li>$1</li>');
+        formatted = formatted.replace(/\n\* (.*?)(?=\n|$)/g, '<li>$1</li>');
         formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
         
         return formatted;
@@ -209,17 +297,25 @@ class ChatUI {
     
     static scrollToBottom() {
         const chatContainer = document.getElementById('chatContainer');
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        if (chatContainer) {
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 100);
+        }
         
         // Hide scroll down button when at bottom
         const scrollDownBtn = document.getElementById('scrollDownBtn');
-        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
-        scrollDownBtn.style.display = isAtBottom ? 'none' : 'flex';
+        if (scrollDownBtn) {
+            const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
+            scrollDownBtn.style.display = isAtBottom ? 'none' : 'flex';
+        }
     }
     
     static showScrollDownButton() {
         const chatContainer = document.getElementById('chatContainer');
         const scrollDownBtn = document.getElementById('scrollDownBtn');
+        
+        if (!chatContainer || !scrollDownBtn) return;
         
         const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
         scrollDownBtn.style.display = isAtBottom ? 'none' : 'flex';
@@ -227,7 +323,7 @@ class ChatUI {
 }
 
 // Setup Event Listeners
-function setupEventListeners() {
+function setupEventListeners(chatManager) {
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const newChatBtn = document.getElementById('newChatBtn');
@@ -235,75 +331,354 @@ function setupEventListeners() {
     const imageUpload = document.getElementById('imageUpload');
     const scrollDownBtn = document.getElementById('scrollDownBtn');
     const chatContainer = document.getElementById('chatContainer');
-    const quickQuestionBtns = document.querySelectorAll('.quick-btn');
+    const closeModal = document.getElementById('closeModal');
+    const removeImage = document.getElementById('removeImage');
+    const useImage = document.getElementById('useImage');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const closeSettingsModal = document.getElementById('closeSettingsModal');
+    const saveApiKey = document.getElementById('saveApiKey');
+    const clearAllData = document.getElementById('clearAllData');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
     
-    const chatManager = new ChatManager();
+    // Make sure New Chat button is clickable
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('New Chat button clicked!');
+            chatManager.startNewChat();
+        });
+        
+        // Double check it's enabled
+        newChatBtn.disabled = false;
+        newChatBtn.style.cursor = 'pointer';
+    }
     
     // Auto-resize textarea
-    messageInput.addEventListener('input', () => {
-        messageInput.style.height = 'auto';
-        messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
-    });
-    
-    // Send message on Enter (Shift+Enter for new line)
-    messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
+    if (messageInput) {
+        messageInput.addEventListener('input', () => {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
+        });
+        
+        // Send message on Enter (Shift+Enter for new line)
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
     
     // Send button click
-    sendBtn.addEventListener('click', sendMessage);
-    
-    // New chat button
-    newChatBtn.addEventListener('click', () => {
-        chatManager.startNewChat();
-    });
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendMessage);
+    }
     
     // Upload image
-    uploadBtn.addEventListener('click', () => {
-        imageUpload.click();
-    });
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => {
+            if (imageUpload) imageUpload.click();
+        });
+    }
     
-    imageUpload.addEventListener('change', (e) => {
-        handleImageUpload(e.target.files[0]);
-    });
+    if (imageUpload) {
+        imageUpload.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleImageUpload(e.target.files[0]);
+            }
+        });
+    }
     
     // Scroll down button
-    scrollDownBtn.addEventListener('click', () => {
-        ChatUI.scrollToBottom();
-    });
+    if (scrollDownBtn) {
+        scrollDownBtn.addEventListener('click', () => {
+            ChatUI.scrollToBottom();
+        });
+    }
     
     // Chat container scroll
-    chatContainer.addEventListener('scroll', () => {
-        ChatUI.showScrollDownButton();
-    });
+    if (chatContainer) {
+        chatContainer.addEventListener('scroll', () => {
+            ChatUI.showScrollDownButton();
+        });
+    }
     
-    // Quick question buttons
-    quickQuestionBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const question = btn.getAttribute('data-question');
-            messageInput.value = question;
-            sendMessage();
+    // Modal controls
+    if (closeModal) {
+        closeModal.addEventListener('click', () => {
+            document.getElementById('imagePreviewModal').style.display = 'none';
+            document.getElementById('imageUpload').value = '';
+        });
+    }
+    
+    if (removeImage) {
+        removeImage.addEventListener('click', () => {
+            document.getElementById('imagePreviewModal').style.display = 'none';
+            document.getElementById('imageUpload').value = '';
+            if (window.ImageHandler) {
+                window.ImageHandler.clearImage();
+            }
+        });
+    }
+    
+    if (useImage) {
+        useImage.addEventListener('click', () => {
+            document.getElementById('imagePreviewModal').style.display = 'none';
+            // Image is already stored in ImageHandler
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.placeholder = "Describe what you see in the image...";
+                messageInput.focus();
+            }
+        });
+    }
+    
+    // Settings modal controls
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            const settingsModal = document.getElementById('settingsModal');
+            if (settingsModal) {
+                settingsModal.classList.add('show');
+                // Load current API key
+                const apiKeyInput = document.getElementById('apiKeyInput');
+                if (apiKeyInput) {
+                    const savedKey = localStorage.getItem('gemini_api_key');
+                    if (savedKey) {
+                        apiKeyInput.value = savedKey;
+                    }
+                }
+            }
+        });
+    }
+    
+    if (closeSettingsModal) {
+        closeSettingsModal.addEventListener('click', () => {
+            document.getElementById('settingsModal').classList.remove('show');
+        });
+    }
+    
+    if (saveApiKey) {
+        saveApiKey.addEventListener('click', () => {
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            if (apiKeyInput && apiKeyInput.value.trim()) {
+                localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
+                showNotification('API key saved successfully!', 'success');
+                document.getElementById('settingsModal').classList.remove('show');
+            } else {
+                showNotification('Please enter a valid API key', 'error');
+            }
+        });
+    }
+    
+    if (clearAllData) {
+        clearAllData.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
+                localStorage.clear();
+                chatManager.startNewChat();
+                showNotification('All data cleared successfully!', 'success');
+                document.getElementById('settingsModal').classList.remove('show');
+            }
+        });
+    }
+    
+    // Theme toggle buttons
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const theme = e.target.getAttribute('data-theme');
+            setTheme(theme);
+            // Update active button
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
         });
     });
     
+    // Header theme toggle
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        });
+    }
+    
+    // Clear history button
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener('click', () => {
+            if (confirm('Clear all chat history?')) {
+                chatManager.clearAllHistory();
+                showNotification('Chat history cleared!', 'success');
+            }
+        });
+    }
+    
+    // Quick question buttons (will be attached dynamically)
+    setTimeout(() => {
+        document.querySelectorAll('.quick-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const question = e.target.getAttribute('data-question');
+                if (messageInput) {
+                    messageInput.value = question;
+                    messageInput.focus();
+                    sendMessage();
+                }
+            });
+        });
+    }, 500);
+    
     // Send message function
     async function sendMessage() {
-        const message = messageInput.value.trim();
-        const imageData = ImageHandler.getCurrentImage();
+        const message = messageInput ? messageInput.value.trim() : '';
+        const imageData = window.ImageHandler ? window.ImageHandler.getCurrentImage() : null;
         
         if (message || imageData) {
             // Clear input and reset height
-            messageInput.value = '';
-            messageInput.style.height = '56px';
+            if (messageInput) {
+                messageInput.value = '';
+                messageInput.style.height = '56px';
+            }
             
             // Clear any uploaded image
-            ImageHandler.clearImage();
+            if (window.ImageHandler) {
+                window.ImageHandler.clearImage();
+            }
+            
+            // Clear file input
+            if (imageUpload) {
+                imageUpload.value = '';
+            }
+            
+            // Reset placeholder
+            if (messageInput) {
+                messageInput.placeholder = "Describe your health concern or upload an image...";
+            }
             
             // Send message
-            await chatManager.sendMessage(message, imageData);
+            await chatManager.sendUserMessage(message, imageData);
         }
     }
+    
+    // Image upload handler
+    function handleImageUpload(file) {
+        if (!file) return;
+        
+        // Validate file type
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file (JPEG, PNG, GIF, etc.)');
+            return;
+        }
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size should be less than 5MB');
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            const imageData = e.target.result;
+            
+            // Store image globally
+            if (!window.ImageHandler) {
+                window.ImageHandler = {
+                    currentImage: null,
+                    getCurrentImage: () => window.ImageHandler.currentImage,
+                    clearImage: () => { window.ImageHandler.currentImage = null; }
+                };
+            }
+            window.ImageHandler.currentImage = imageData;
+            
+            // Show preview modal
+            const modal = document.getElementById('imagePreviewModal');
+            const previewImage = document.getElementById('previewImage');
+            
+            if (modal && previewImage) {
+                previewImage.src = imageData;
+                modal.style.display = 'flex';
+                modal.classList.add('show');
+            } else {
+                // If modal doesn't exist, just use the image
+                sendMessage();
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    }
+}
+
+// Make ChatUI available globally
+window.ChatUI = ChatUI;
+
+// Theme management functions
+function setTheme(theme) {
+    const root = document.documentElement;
+    
+    if (theme === 'auto') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        theme = prefersDark ? 'dark' : 'light';
+    }
+    
+    root.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    // Update theme toggle icon
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    if (themeToggleBtn) {
+        const icon = themeToggleBtn.querySelector('i');
+        if (icon) {
+            icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+    }
+    
+    showNotification(`Theme changed to ${theme}!`, 'success');
+}
+
+// Load saved theme on startup
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+    
+    // Update theme buttons in settings
+    const themeBtns = document.querySelectorAll('.theme-btn');
+    themeBtns.forEach(btn => {
+        if (btn.getAttribute('data-theme') === savedTheme) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+});
+
+// Notification function (if not already defined)
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'info') {
+        const toast = document.getElementById('notificationToast');
+        if (!toast) return;
+        
+        const icon = toast.querySelector('.toast-icon');
+        const msg = toast.querySelector('.toast-message');
+        
+        msg.textContent = message;
+        
+        const icons = {
+            'success': 'fas fa-check-circle',
+            'error': 'fas fa-exclamation-circle',
+            'warning': 'fas fa-exclamation-triangle',
+            'info': 'fas fa-info-circle'
+        };
+        icon.className = 'toast-icon ' + (icons[type] || icons.info);
+        
+        toast.className = 'toast ' + type;
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 5000);
+        
+        toast.querySelector('.toast-close').onclick = () => {
+            toast.classList.remove('show');
+        };
+    };
 }

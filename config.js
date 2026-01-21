@@ -1,6 +1,6 @@
 // config.js - PASTE YOUR API KEY HERE
 window.HealthGuardConfig = {
-    API_KEY: "AIzaSyDttqh8wULnHnrBjP8MU8N5pZ0feJXx9W8",
+    API_KEY: "AIzaSyBI59NP60WLBh2ikap5WaHTwgkRXSKOOKY",
     
     getApiKey: function() {
         return this.API_KEY;

@@ -1,507 +1,361 @@
-// script.js - Complete Working Health Guard AI Script
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>">
+    <!-- In the <head> section -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22%2310a37f%22>🏥</text></svg>">
 
-// Main Application Script
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Health Guard AI initialized successfully!');
-    
-    // Initialize components
-    const chatManager = new ChatManager();
-    window.chatManager = chatManager; // Make globally available
-    
-    // Set up all event listeners
-    setupEventListeners(chatManager);
-    
-    // Load chat history
-    chatManager.loadChatHistory();
-    
-    // Test: Make sure New Chat button is clickable
-    const newChatBtn = document.getElementById('newChatBtn');
-    if (newChatBtn) {
-        newChatBtn.style.cursor = 'pointer';
-        newChatBtn.disabled = false;
-        console.log('✅ New Chat button ready');
-    }
-});
+<!-- In the chat-header -->
+<div class="logo-simple">
+    <div class="logo-circle">
+        <span class="logo-heart">❤️</span>
+        <span class="logo-ai">AI</span>
+    </div>
+    <span class="logo-name">Health Guard</span>
+</div>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" id="newChatBtn">
+                    <i class="fas fa-plus"></i>
+                    <span>New Chat</span>
+                </button>
+            </div>
+            
+            <div class="chat-history-container">
+                <h3><i class="fas fa-history"></i> Recent Chats</h3>
+                <div class="chat-history" id="chatHistory">
+                    <!-- Chat history will be dynamically loaded here -->
+                    <div class="empty-history">
+                        <i class="fas fa-comment-medical"></i>
+                        <p>No chat history yet</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="username">Health Assistant</span>
+                        <span class="user-status">Online</span>
+                    </div>
+                </div>
+                <button class="settings-btn" id="settingsBtn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </aside>
 
-// Chat Manager Class
-class ChatManager {
-    constructor() {
-        this.currentChatId = null;
-        this.messages = [];
-        this.apiService = new ApiService();
-        
-        // Load current chat if exists
-        const savedChatId = localStorage.getItem('currentChatId');
-        if (savedChatId) {
-            this.currentChatId = savedChatId;
-        } else {
-            this.startNewChat();
-        }
-    }
-    
-    startNewChat() {
-        console.log('🎯 Starting new chat...');
-        
-        this.currentChatId = 'chat_' + Date.now();
-        this.messages = [];
-        localStorage.setItem('currentChatId', this.currentChatId);
-        
-        // Clear chat container
-        const chatContainer = document.getElementById('chatContainer');
-        chatContainer.innerHTML = '';
-        
-        // Show welcome screen
-        const welcomeScreen = document.getElementById('welcomeScreen');
-        if (welcomeScreen) {
-            welcomeScreen.style.display = 'block';
-        } else {
-            // Recreate welcome screen if missing
-            chatContainer.innerHTML = `
+        <!-- Main Chat Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="chat-header">
+                  <h1>
+                     <i class="fas fa-shield-heart" style="color: #10a37f; margin-right: 10px;"></i>Health Guard AI
+                     <small style="display: block; font-size: 14px; color: #8e8ea0; font-weight: normal;">Your AI Medical Assistant
+        </small>
+    </h1>
+                <div class="header-actions">
+                    <button class="header-btn" id="clearHistoryBtn" title="Clear History">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="header-btn" id="themeToggleBtn" title="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Messages Container -->
+            <div class="chat-container" id="chatContainer">
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-icon">
-                        <i class="fas fa-heartbeat"></i>
+                        <i class="fas fa-stethoscope"></i>
                     </div>
                     <h2>Welcome to Health Guard AI</h2>
-                    <p>Ask me anything about your health concerns, symptoms, or general wellness.</p>
+                    <p>Your trusted AI medical assistant. Ask me anything about symptoms, medications, general health advice, or upload an image for analysis.</p>
+                    
+                    <div class="welcome-features">
+                        <div class="feature">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Privacy Protected</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-bolt"></i>
+                            <span>Instant Responses</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-camera"></i>
+                            <span>Image Analysis</span>
+                        </div>
+                    </div>
+                    
                     <div class="quick-questions">
-                        <button class="quick-btn" data-question="What are the symptoms of flu?">Flu Symptoms</button>
-                        <button class="quick-btn" data-question="How to lower blood pressure naturally?">Lower BP</button>
-                        <button class="quick-btn" data-question="What foods are good for digestion?">Digestion</button>
-                        <button class="quick-btn" data-question="When should I see a doctor for a headache?">Headache</button>
+                        <button class="quick-btn" data-question="What are common symptoms of COVID-19?">
+                            <i class="fas fa-virus"></i> COVID Symptoms
+                        </button>
+                        <button class="quick-btn" data-question="How can I lower my blood pressure naturally?">
+                            <i class="fas fa-heart"></i> Lower BP
+                        </button>
+                        <button class="quick-btn" data-question="What foods help with digestion and gut health?">
+                            <i class="fas fa-apple-alt"></i> Digestion
+                        </button>
+                        <button class="quick-btn" data-question="When should I see a doctor for persistent headaches?">
+                            <i class="fas fa-head-side-virus"></i> Headaches
+                        </button>
+                        <button class="quick-btn" data-question="How to manage stress and anxiety effectively?">
+                            <i class="fas fa-brain"></i> Stress
+                        </button>
+                        <button class="quick-btn" data-question="What are signs of dehydration to watch for?">
+                            <i class="fas fa-tint"></i> Dehydration
+                        </button>
+                    </div>
+                    
+                    <div class="safety-notice">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p><strong>Important:</strong> This AI provides general health information only. Always consult a healthcare professional for medical advice, diagnosis, or treatment.</p>
                     </div>
                 </div>
-            `;
-            
-            // Reattach quick question listeners
-            setTimeout(() => {
-                document.querySelectorAll('.quick-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const question = e.target.getAttribute('data-question');
-                        document.getElementById('messageInput').value = question;
-                        this.sendUserMessage(question);
-                    });
-                });
-            }, 100);
-        }
-        
-        // Update chat history
-        this.updateChatHistory();
-        
-        // Scroll to top
-        ChatUI.scrollToBottom();
-        
-        console.log('✅ New chat created:', this.currentChatId);
-        return this.currentChatId;
-    }
-    
-    async sendUserMessage(message, imageData = null) {
-        if (!message.trim() && !imageData) return;
-        
-        // Hide welcome screen
-        const welcomeScreen = document.getElementById('welcomeScreen');
-        if (welcomeScreen) {
-            welcomeScreen.style.display = 'none';
-        }
-        
-        // Add user message to UI
-        ChatUI.addMessage('user', message, imageData);
-        
-        // Add to messages array
-        this.messages.push({
-            role: 'user',
-            content: message,
-            image: imageData,
-            timestamp: new Date().toISOString()
-        });
-        
-        // Show typing indicator
-        ChatUI.showTypingIndicator();
-        
-        try {
-            // Send to Gemini API
-            const response = await this.apiService.sendToGemini(message, imageData);
-            
-            // Remove typing indicator
-            ChatUI.hideTypingIndicator();
-            
-            // Add AI response to UI
-            ChatUI.addMessage('ai', response);
-            
-            // Add to messages array
-            this.messages.push({
-                role: 'assistant',
-                content: response,
-                timestamp: new Date().toISOString()
-            });
-            
-            // Update chat history
-            this.updateChatHistory();
-            
-            // Scroll to bottom
-            ChatUI.scrollToBottom();
-            
-        } catch (error) {
-            ChatUI.hideTypingIndicator();
-            ChatUI.addMessage('ai', 'Sorry, I encountered an error. Please try again. Error: ' + error.message);
-            console.error('Error:', error);
-        }
-    }
-    
-    updateChatHistory() {
-        if (this.messages.length > 0) {
-            const firstMessage = this.messages.find(m => m.role === 'user');
-            const lastMessage = this.messages[this.messages.length - 1];
-            
-            const chatTitle = firstMessage ? 
-                (firstMessage.content.substring(0, 30) + (firstMessage.content.length > 30 ? '...' : '')) : 
-                'New Chat';
-            
-            const lastMessagePreview = lastMessage.content.substring(0, 50) + 
-                (lastMessage.content.length > 50 ? '...' : '');
-            
-            saveToChatHistory({
-                id: this.currentChatId,
-                title: chatTitle,
-                lastMessage: lastMessagePreview,
-                timestamp: new Date().toISOString(),
-                messageCount: this.messages.length
-            });
-            
-            loadChatHistory();
-        }
-    }
-    
-    loadChatHistory() {
-        loadChatHistory();
-    }
-    
-    loadChat(chatId) {
-        console.log('Loading chat:', chatId);
-        // In a real app, you would load the full conversation from storage
-        // For now, just create a new chat
-        this.startNewChat();
-        ChatUI.addMessage('ai', `Welcome back! Starting a fresh chat. Previous chats would load here with proper backend.`);
-    }
-}
 
-// Chat UI Management
-class ChatUI {
-    static addMessage(role, content, imageData = null) {
-        const chatContainer = document.getElementById('chatContainer');
-        const welcomeScreen = document.getElementById('welcomeScreen');
-        
-        // Hide welcome screen if it's visible
-        if (welcomeScreen && welcomeScreen.style.display !== 'none') {
-            welcomeScreen.style.display = 'none';
-        }
-        
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${role}-message`;
-        
-        const avatar = role === 'user' 
-            ? '<div class="message-avatar user-avatar"><i class="fas fa-user"></i></div>'
-            : '<div class="message-avatar ai-avatar"><i class="fas fa-robot"></i></div>';
-        
-        let contentHtml = '';
-        if (imageData) {
-            contentHtml += `<img src="${imageData}" alt="Uploaded image" style="max-width: 300px; border-radius: 8px; margin-bottom: 10px;"><br>`;
-        }
-        contentHtml += this.formatMessage(content);
-        
-        messageDiv.innerHTML = `
-            <div class="message-content">
-                ${avatar}
-                <div class="message-text">
-                    ${contentHtml}
-                </div>
+                <!-- Messages will be appended here dynamically -->
             </div>
-        `;
-        
-        chatContainer.appendChild(messageDiv);
-        this.scrollToBottom();
-    }
-    
-    static formatMessage(content) {
-        if (!content) return '';
-        
-        // Convert markdown-like formatting to HTML
-        let formatted = content
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/`(.*?)`/g, '<code>$1</code>')
-            .replace(/\n/g, '<br>')
-            .replace(/### (.*?)(?=\n|$)/g, '<h3>$1</h3>')
-            .replace(/## (.*?)(?=\n|$)/g, '<h3>$1</h3>')
-            .replace(/# (.*?)(?=\n|$)/g, '<h2>$1</h2>');
-        
-        // Add list formatting
-        formatted = formatted.replace(/\n\* (.*?)(?=\n|$)/g, '<li>$1</li>');
-        formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-        
-        return formatted;
-    }
-    
-    static showTypingIndicator() {
-        const chatContainer = document.getElementById('chatContainer');
-        
-        const typingDiv = document.createElement('div');
-        typingDiv.className = 'message ai-message';
-        typingDiv.id = 'typingIndicator';
-        
-        typingDiv.innerHTML = `
-            <div class="message-content">
-                <div class="message-avatar ai-avatar">
-                    <i class="fas fa-robot"></i>
+
+            <!-- Scroll Down Button -->
+            <button class="scroll-down-btn" id="scrollDownBtn" title="Scroll to bottom">
+                <i class="fas fa-arrow-down"></i>
+            </button>
+
+            <!-- Input Area -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <div class="upload-btn-container">
+                        <button class="upload-btn" id="uploadBtn" title="Upload Image (Ctrl+I)">
+                            <i class="fas fa-image"></i>
+                        </button>
+                        <input type="file" id="imageUpload" accept="image/*" style="display: none;" capture="environment">
+                    </div>
+                    
+                    <div class="message-input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Describe your health concern or upload an image for analysis..." 
+                            rows="1"
+                            autocomplete="off"
+                            spellcheck="true"
+                        ></textarea>
+                        <div class="input-actions">
+                            <button class="microphone-btn" id="microphoneBtn" title="Voice Input (Coming Soon)">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button class="send-btn" id="sendBtn" title="Send Message (Enter)">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="message-text">
-                    <div class="typing-indicator">
-                        <span></span>
-                        <span></span>
-                        <span></span>
+                
+                <div class="input-footer">
+                    <div class="disclaimer">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Health Guard AI can make mistakes. Always verify important information with healthcare providers.</span>
+                    </div>
+                    <div class="shortcuts">
+                        <kbd>Enter</kbd> to send • <kbd>Shift+Enter</kbd> for new line • <kbd>Ctrl+I</kbd> for image
                     </div>
                 </div>
             </div>
-        `;
-        
-        chatContainer.appendChild(typingDiv);
-        this.scrollToBottom();
-    }
-    
-    static hideTypingIndicator() {
-        const typingIndicator = document.getElementById('typingIndicator');
-        if (typingIndicator) {
-            typingIndicator.remove();
-        }
-    }
-    
-    static scrollToBottom() {
-        const chatContainer = document.getElementById('chatContainer');
-        if (chatContainer) {
-            setTimeout(() => {
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }, 100);
-        }
-        
-        // Hide scroll down button when at bottom
-        const scrollDownBtn = document.getElementById('scrollDownBtn');
-        if (scrollDownBtn) {
-            const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
-            scrollDownBtn.style.display = isAtBottom ? 'none' : 'flex';
-        }
-    }
-    
-    static showScrollDownButton() {
-        const chatContainer = document.getElementById('chatContainer');
-        const scrollDownBtn = document.getElementById('scrollDownBtn');
-        
-        if (!chatContainer || !scrollDownBtn) return;
-        
-        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
-        scrollDownBtn.style.display = isAtBottom ? 'none' : 'flex';
-    }
-}
 
-// Setup Event Listeners
-function setupEventListeners(chatManager) {
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const newChatBtn = document.getElementById('newChatBtn');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const imageUpload = document.getElementById('imageUpload');
-    const scrollDownBtn = document.getElementById('scrollDownBtn');
-    const chatContainer = document.getElementById('chatContainer');
-    const closeModal = document.getElementById('closeModal');
-    const removeImage = document.getElementById('removeImage');
-    const useImage = document.getElementById('useImage');
+            <!-- Preview Image Modal -->
+            <div class="modal" id="imagePreviewModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-image"></i> Image Preview</h3>
+                        <button class="close-modal" id="closeModal" title="Close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="image-container">
+                            <img id="previewImage" src="" alt="Preview of uploaded image">
+                        </div>
+                        <div class="image-info">
+                            <p>Image ready for analysis. Describe what you see or ask a question about it.</p>
+                        </div>
+                        <div class="image-actions">
+                            <button class="action-btn remove-btn" id="removeImage">
+                                <i class="fas fa-trash"></i> Remove Image
+                            </button>
+                            <button class="action-btn use-btn" id="useImage">
+                                <i class="fas fa-check"></i> Use in Chat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div class="modal" id="settingsModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-cog"></i> Settings</h3>
+                        <button class="close-modal" id="closeSettingsModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="settings-section">
+                            <h4><i class="fas fa-key"></i> API Configuration</h4>
+                            <div class="setting-item">
+                                <label for="apiKeyInput">Gemini API Key:</label>
+                                <div class="input-group">
+                                    <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key">
+                                    <button class="action-btn" id="saveApiKey">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
+                                </div>
+                                <small class="help-text">
+                                    Get your free API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h4><i class="fas fa-paint-brush"></i> Appearance</h4>
+                            <div class="setting-item">
+                                <label>Theme:</label>
+                                <div class="theme-options">
+                                    <button class="theme-btn active" data-theme="dark">
+                                        <i class="fas fa-moon"></i> Dark
+                                    </button>
+                                    <button class="theme-btn" data-theme="light">
+                                        <i class="fas fa-sun"></i> Light
+                                    </button>
+                                    <button class="theme-btn" data-theme="auto">
+                                        <i class="fas fa-adjust"></i> Auto
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h4><i class="fas fa-database"></i> Data Management</h4>
+                            <div class="setting-item">
+                                <button class="action-btn warning-btn" id="clearAllData">
+                                    <i class="fas fa-trash"></i> Clear All Chat History
+                                </button>
+                                <small class="help-text">This will permanently delete all your conversations</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notification Toast -->
+            <div class="toast" id="notificationToast">
+                <div class="toast-content">
+                    <i class="toast-icon"></i>
+                    <span class="toast-message"></span>
+                </div>
+                <button class="toast-close">&times;</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="config.js"></script>
+    <script src="api-service.js"></script>
+    <script src="chat-history.js"></script>
+    <script src="image-handler.js"></script>
+    <script src="script.js"></script>
     
-    // Make sure New Chat button is clickable
-    if (newChatBtn) {
-        newChatBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('New Chat button clicked!');
-            chatManager.startNewChat();
-        });
-        
-        // Double check it's enabled
-        newChatBtn.disabled = false;
-        newChatBtn.style.cursor = 'pointer';
-    }
-    
-    // Auto-resize textarea
-    if (messageInput) {
-        messageInput.addEventListener('input', () => {
-            messageInput.style.height = 'auto';
-            messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
-        });
-        
-        // Send message on Enter (Shift+Enter for new line)
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-    }
-    
-    // Send button click
-    if (sendBtn) {
-        sendBtn.addEventListener('click', sendMessage);
-    }
-    
-    // Upload image
-    if (uploadBtn) {
-        uploadBtn.addEventListener('click', () => {
-            if (imageUpload) imageUpload.click();
-        });
-    }
-    
-    if (imageUpload) {
-        imageUpload.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                handleImageUpload(e.target.files[0]);
-            }
-        });
-    }
-    
-    // Scroll down button
-    if (scrollDownBtn) {
-        scrollDownBtn.addEventListener('click', () => {
-            ChatUI.scrollToBottom();
-        });
-    }
-    
-    // Chat container scroll
-    if (chatContainer) {
-        chatContainer.addEventListener('scroll', () => {
-            ChatUI.showScrollDownButton();
-        });
-    }
-    
-    // Modal controls
-    if (closeModal) {
-        closeModal.addEventListener('click', () => {
-            document.getElementById('imagePreviewModal').style.display = 'none';
-            document.getElementById('imageUpload').value = '';
-        });
-    }
-    
-    if (removeImage) {
-        removeImage.addEventListener('click', () => {
-            document.getElementById('imagePreviewModal').style.display = 'none';
-            document.getElementById('imageUpload').value = '';
-            if (window.ImageHandler) {
-                window.ImageHandler.clearImage();
-            }
-        });
-    }
-    
-    if (useImage) {
-        useImage.addEventListener('click', () => {
-            document.getElementById('imagePreviewModal').style.display = 'none';
-            // Image is already stored in ImageHandler
-            const messageInput = document.getElementById('messageInput');
-            if (messageInput) {
-                messageInput.placeholder = "Describe what you see in the image...";
-                messageInput.focus();
-            }
-        });
-    }
-    
-    // Quick question buttons (will be attached dynamically)
-    setTimeout(() => {
-        document.querySelectorAll('.quick-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const question = e.target.getAttribute('data-question');
-                if (messageInput) {
-                    messageInput.value = question;
-                    messageInput.focus();
-                    sendMessage();
-                }
-            });
-        });
-    }, 500);
-    
-    // Send message function
-    async function sendMessage() {
-        const message = messageInput ? messageInput.value.trim() : '';
-        const imageData = window.ImageHandler ? window.ImageHandler.getCurrentImage() : null;
-        
-        if (message || imageData) {
-            // Clear input and reset height
-            if (messageInput) {
-                messageInput.value = '';
-                messageInput.style.height = '56px';
-            }
+    <!-- Inline JavaScript for Quick Setup -->
+    <script>
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Health Guard AI Initializing...');
             
-            // Clear any uploaded image
-            if (window.ImageHandler) {
-                window.ImageHandler.clearImage();
-            }
-            
-            // Clear file input
-            if (imageUpload) {
-                imageUpload.value = '';
-            }
-            
-            // Reset placeholder
-            if (messageInput) {
-                messageInput.placeholder = "Describe your health concern or upload an image...";
-            }
-            
-            // Send message
-            await chatManager.sendUserMessage(message, imageData);
-        }
-    }
-    
-    // Image upload handler
-    function handleImageUpload(file) {
-        if (!file) return;
-        
-        // Validate file type
-        if (!file.type.match('image.*')) {
-            alert('Please select an image file (JPEG, PNG, GIF, etc.)');
-            return;
-        }
-        
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Image size should be less than 5MB');
-            return;
-        }
-        
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            const imageData = e.target.result;
-            
-            // Store image globally
-            if (!window.ImageHandler) {
-                window.ImageHandler = {
-                    currentImage: null,
-                    getCurrentImage: () => window.ImageHandler.currentImage,
-                    clearImage: () => { window.ImageHandler.currentImage = null; }
+            // Check for config.js
+            if (typeof window.HealthGuardConfig === 'undefined') {
+                console.warn('⚠️ config.js not found. Creating default config...');
+                window.HealthGuardConfig = {
+                    API_KEY: "",
+                    getApiKey: function() {
+                        return this.API_KEY || localStorage.getItem('gemini_api_key');
+                    },
+                    setApiKey: function(key) {
+                        this.API_KEY = key;
+                        localStorage.setItem('gemini_api_key', key);
+                        return true;
+                    }
                 };
             }
-            window.ImageHandler.currentImage = imageData;
             
-            // Show preview modal
-            const modal = document.getElementById('imagePreviewModal');
-            const previewImage = document.getElementById('previewImage');
-            
-            if (modal && previewImage) {
-                previewImage.src = imageData;
-                modal.style.display = 'flex';
-                modal.classList.add('show');
-            } else {
-                // If modal doesn't exist, just use the image
-                sendMessage();
-            }
-        };
+            // Show welcome message
+            setTimeout(function() {
+                console.log('✅ Health Guard AI Ready!');
+                showNotification('Welcome to Health Guard AI!', 'success');
+            }, 1000);
+        });
         
-        reader.readAsDataURL(file);
-    }
-}
-
-// Make ChatUI available globally
-window.ChatUI = ChatUI;
+        // Helper function for notifications
+        function showNotification(message, type = 'info') {
+            const toast = document.getElementById('notificationToast');
+            const icon = toast.querySelector('.toast-icon');
+            const msg = toast.querySelector('.toast-message');
+            
+            if (!toast) return;
+            
+            // Set content
+            msg.textContent = message;
+            
+            // Set icon based on type
+            const icons = {
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'info': 'fas fa-info-circle'
+            };
+            icon.className = 'toast-icon ' + (icons[type] || icons.info);
+            
+            // Set color
+            toast.className = 'toast ' + type;
+            
+            // Show toast
+            toast.classList.add('show');
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+            
+            // Close button
+            toast.querySelector('.toast-close').onclick = () => {
+                toast.classList.remove('show');
+            };
+        }
+        
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+I for image upload
+            if (e.ctrlKey && e.key === 'i') {
+                e.preventDefault();
+                document.getElementById('uploadBtn').click();
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.show').forEach(modal => {
+                    modal.classList.remove('show');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

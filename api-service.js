@@ -2,16 +2,19 @@
 class ApiService {
     constructor() {
         this.apiKey = null;
-        this.baseURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-        this.visionURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent';
+        // ✅ UPDATED: Changed model names to gemini-1.5-pro
+        this.baseURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+        this.visionURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-vision:generateContent';
         this.initializeAPI();
     }
     
     initializeAPI() {
         // ⬇️⬇️⬇️ PASTE YOUR GEMINI API KEY HERE ⬇️⬇️⬇️
-        this.apiKey = "AIzaSyDttqh8wULnHnrBjP8MU8N5pZ0feJXx9W8";
-        // ⬆️⬆️⬆️ REPLACE WITH YOUR ACTUAL KEY ⬆️⬆️⬆️
+        this.apiKey = "AIzaSyBI59NP60WLBh2ikap5WaHTwgkRXSKOOKY";
+        // ⬆️⬆️⬆️ YOUR ACTUAL KEY IS HERE ⬆️⬆️⬆️
         // Get key from: https://makersuite.google.com/app/apikey
+        
+        console.log("✅ API Service initialized. Key loaded:", this.apiKey ? "Yes" : "No");
         
         // Optional: If you want to use config.js instead, comment above and uncomment below:
         /*
@@ -53,12 +56,14 @@ class ApiService {
     
     async sendToGemini(message, imageData = null) {
         // Validate API key
-        if (!this.apiKey || this.apiKey === "AIzaSyBxYOUR_REAL_API_KEY_HERE") {
+        if (!this.apiKey || this.apiKey === "") {
             this.promptForAPIKey();
             if (!this.apiKey) {
                 throw new Error('API key is required');
             }
         }
+        
+        console.log("📤 Sending to Gemini API...");
         
         try {
             let response;
@@ -71,7 +76,7 @@ class ApiService {
             
             return this.parseResponse(response);
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('❌ API Error:', error);
             
             // Fallback responses if API fails
             return this.getFallbackResponse(message, error);
@@ -80,6 +85,8 @@ class ApiService {
     
     async sendToGeminiText(message) {
         const url = `${this.baseURL}?key=${this.apiKey}`;
+        
+        console.log("🌐 API URL:", url.substring(0, 80) + "...");
         
         const requestBody = {
             contents: [{
@@ -113,6 +120,8 @@ class ApiService {
             ]
         };
         
+        console.log("📦 Request body prepared");
+        
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -121,12 +130,17 @@ class ApiService {
             body: JSON.stringify(requestBody)
         });
         
+        console.log("📊 API Response Status:", response.status);
+        
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+            console.error("❌ API Error Details:", errorData);
             throw new Error(`API request failed: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
         }
         
-        return await response.json();
+        const data = await response.json();
+        console.log("✅ API Success - Received response");
+        return data;
     }
     
     async sendToGeminiVision(message, imageData) {
@@ -201,13 +215,16 @@ class ApiService {
                 response.candidates[0].content.parts[0]) {
                 
                 const text = response.candidates[0].content.parts[0].text;
+                console.log("📥 Parsed response length:", text.length, "chars");
                 
                 // Add disclaimer to health responses
                 return this.addDisclaimer(text);
                 
             } else if (response.error) {
+                console.error("API returned error:", response.error);
                 throw new Error(response.error.message || 'Unknown API error');
             } else {
+                console.error("Unexpected API response format:", response);
                 throw new Error('Invalid response format from API');
             }
         } catch (error) {
@@ -248,6 +265,8 @@ Please provide a comprehensive but concise response following the above guidelin
     }
     
     getFallbackResponse(message, error) {
+        console.log("🔄 Using fallback response due to error:", error.message);
+        
         const lowerMessage = message.toLowerCase();
         
         // Common health questions fallback responses
@@ -268,7 +287,17 @@ Please provide a comprehensive but concise response following the above guidelin
         }
         
         // Generic fallback
-        return `I understand you're asking about "${message.substring(0, 50)}...". Due to technical issues with the AI service, I cannot provide a specific response right now.\n\nPlease try again in a few moments, or consult a healthcare professional for accurate medical advice.\n\nError: ${error.message || 'Connection issue'}`;
+        return `I understand you're asking about "${message.substring(0, 50)}...". 
+
+Due to technical issues with the AI service, I cannot provide a specific response right now.
+
+**Error Details:** ${error.message || 'Connection issue'}
+
+**Troubleshooting:**
+1. Check your API key is valid
+2. Ensure internet connection
+3. Try refreshing the page
+4. Consult a healthcare professional for accurate medical advice.`;
     }
     
     // Utility method to validate API key
@@ -307,5 +336,13 @@ if (typeof module !== 'undefined' && module.exports) {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('ApiService module loaded');
+    console.log('✅ ApiService module loaded');
+    console.log('🔧 Model URLs updated to gemini-1.5-pro');
 });
+
+// Test the API immediately
+setTimeout(() => {
+    const api = new ApiService();
+    console.log("🧪 API Key present:", api.apiKey ? "Yes" : "No");
+    console.log("🔑 API Key first 15 chars:", api.apiKey ? api.apiKey.substring(0, 15) + "..." : "None");
+}, 1000);

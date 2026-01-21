@@ -1,39 +1,30 @@
-# Health Guard AI
 
-A personal health assistant powered by Google's Gemini AI, providing medical advice and health-related information through an intuitive chat interface.
+## 🛠️ How to Use
 
-## Features
+1. **New Chat**: Click "+ New Chat" in sidebar
+2. **Ask Questions**: Type health questions in input box
+3. **Upload Images**: Click image icon 📎 to upload medical photos
+4. **View History**: All chats saved in sidebar with dates
+5. **Scroll**: Arrow appears when you scroll up to go back down
 
-- AI-powered medical consultations
-- Chat history management
-- Image analysis for medical images
-- Responsive design
-- Secure API key storage (local only)
+## ⚠️ Important
 
-## Prerequisites
+- **NOT MEDICAL ADVICE**: Educational purposes only. Consult real doctors.
+- **API Key**: Stored locally in your browser (no server needed)
+- **Privacy**: Only sends data to Google API for responses
 
-- A modern web browser
-- Google Gemini API key (get one from [Google AI Studio](https://makersuite.google.com/app/apikey))
+## 🔧 Troubleshooting
 
-## How to Run
+If AI doesn't respond:
+1. Check browser console (F12)
+2. Ensure valid Gemini API key
+3. Try disabling browser extensions
+4. Refresh page and re-enter API key
 
-1. Clone or download this repository
-2. Open `index.html` in your web browser
-3. When prompted, enter your Gemini API key
-4. Start chatting with your health assistant!
+## 📞 Support
 
-## Files
+The AI in the chat will help you with any questions about the app itself!
 
-- `index.html` - Main HTML structure
-- `style.css` - Styling and layout
-- `script.js` - Main application logic
-- `api-service.js` - Gemini API integration
-- `chat-history.js` - Chat history management
+---
 
-## Security Note
-
-This application stores your API key in browser localStorage. For production use, consider implementing a secure backend service to handle API calls.
-
-## Disclaimer
-
-This AI assistant is for informational purposes only and should not replace professional medical advice. Always consult with qualified healthcare providers for medical concerns.
+**Built with ❤️ for health education | Always consult healthcare professionals**
